@@ -28,9 +28,7 @@ const erasaDatabaseOnSync = true;
 connectDb().then(async () => {
     if(erasaDatabaseOnSync) {
         await Promise.all([
-            models.Board.deleteMany({}),
-            models.Column.deleteMany({}),
-            models.Card.deleteMany({})
+            models.User.deleteMany({}),
         ]);
 
         createSeeds();
