@@ -29,7 +29,7 @@ const ticketSchema = new Schema({
         type: Schema.Types.ObjectId,
         ref: 'Department'
     },
-    stage: {
+    status: {
         type: String
     },
     creator: {

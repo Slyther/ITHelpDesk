@@ -7,6 +7,12 @@ router.post('/', async (req, res) => {
     return res.send(type);
 });
 
+router.get('/', async (req, res) => {
+    const types = await req.context.models.Type.find({});
+
+    return res.send(types);
+});
+
 router.get('/:id', async (req, res) => {
     const types = await req.context.models.Type.find({department: req.params.id});
 

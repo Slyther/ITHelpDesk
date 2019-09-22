@@ -12,6 +12,8 @@ const activitySchema = new Schema({
         type: Schema.Types.ObjectId,
         ref: 'Ticket'
     }
+}, {
+    timestamps: true
 });
 
 export default model('Activity', activitySchema);

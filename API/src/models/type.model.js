@@ -16,7 +16,7 @@ const typeSchema = new Schema({
         type: String 
     },
     eta: {
-        type: Date
+        type: String
     }
 });
 

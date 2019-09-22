@@ -9,7 +9,55 @@ router.post('/', async (req, res) => {
 });
 
 router.get('/:id', async (req, res) => {
-    const tickets = await req.context.models.Ticket.find($or[{creator: req.params.id}, {handler: req.params.id}]).populate('activity');
+    const tickets = await req.context.models.Ticket.find({$or: [{creator: req.params.id}, {handler: req.params.id}]}).populate('activity');
+    Promise.all(
+        tickets.map(async ticket => {
+            ticket.activity = await req.context.models.Ticket.resolveActivity(ticket.activity, req.context.models);
+            return ticket;
+        })
+    ).then((tickets) => {
+        return res.send(tickets);
+    });
+});
+
+router.get('/own/:id', async (req, res) => {
+    const tickets = await req.context.models.Ticket.find({creator: req.params.id}).populate('activity');
+    Promise.all(
+        tickets.map(async ticket => {
+            ticket.activity = await req.context.models.Ticket.resolveActivity(ticket.activity, req.context.models);
+            return ticket;
+        })
+    ).then((tickets) => {
+        return res.send(tickets);
+    });
+});
+
+router.get('/assigned/:id', async (req, res) => {
+    const tickets = await req.context.models.Ticket.find({handler: req.params.id}).populate('activity');
+    Promise.all(
+        tickets.map(async ticket => {
+            ticket.activity = await req.context.models.Ticket.resolveActivity(ticket.activity, req.context.models);
+            return ticket;
+        })
+    ).then((tickets) => {
+        return res.send(tickets);
+    });
+});
+
+router.get('/unassigned', async (req, res) => {
+    const tickets = await req.context.models.Ticket.find({handler: null}).populate('activity');
+    Promise.all(
+        tickets.map(async ticket => {
+            ticket.activity = await req.context.models.Ticket.resolveActivity(ticket.activity, req.context.models);
+            return ticket;
+        })
+    ).then((tickets) => {
+        return res.send(tickets);
+    });
+});
+
+router.get('/allassigned', async (req, res) => {
+    const tickets = await req.context.models.Ticket.find({handler: {$ne: null}}).populate('activity');
     Promise.all(
         tickets.map(async ticket => {
             ticket.activity = await req.context.models.Ticket.resolveActivity(ticket.activity, req.context.models);
