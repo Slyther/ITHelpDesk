@@ -39,6 +39,10 @@ connectDb().then(async () => {
     if(erasaDatabaseOnSync === 'true') {
         await Promise.all([
             models.User.deleteMany({}),
+            models.Type.deleteMany({}),
+            models.Ticket.deleteMany({}),
+            models.Department.deleteMany({}),
+            models.Activity.deleteMany({}),
         ]);
     }
     app.listen(PORT, () => {
