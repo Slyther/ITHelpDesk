@@ -1,12 +1,14 @@
 const mongoose = require('mongoose');
 
-const username = 'HelpDeskDirect';
-const password = 'dKpH5pnGSjQMXv7l';
-const server = 'cluster0-sjxrw.mongodb.net';
-const database = 'ITHD';
+require('dotenv').config({path: `${__dirname}\\environments\\${process.env.NODE_ENV.trim()}.env`})
+
+const username = process.env.DBUSER;
+const password = process.env.DBPASSWORD;
+const server = process.env.DBSERVER;
+const database = process.env.DBNAME;
 const uri = `mongodb+srv://${username}:${password}@${server}/${database}?retryWrites=true&w=majority`;
 
-const User = require('./models/user.model');
+const User = require('./models/user.model').default;
 
 const models = { User };
 

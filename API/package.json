@@ -4,17 +4,27 @@
   "main": "index.js",
   "license": "MIT",
   "scripts": {
-    "start": "nodemon --exec babel-node src/index"
+    "start": "SET NODE_ENV=development & nodemon --exec babel-node src/index",
+    "test": "SET NODE_ENV=tests & mocha --require babel-polyfill --require @babel/register --timeout 10000"
   },
   "dependencies": {
+    "chai": "^4.2.0",
+    "chai-http": "^4.3.0",
     "cors": "^2.8.5",
+    "dotenv": "^8.1.0",
     "express": "^4.17.1",
+    "express-session": "^1.16.2",
+    "js-sha256": "^0.9.0",
+    "mocha": "^6.2.0",
+    "moment": "^2.24.0",
     "mongoose": "^5.6.10"
   },
   "devDependencies": {
     "@babel/core": "^7.5.5",
     "@babel/node": "^7.5.5",
     "@babel/preset-env": "^7.5.5",
+    "@babel/register": "^7.6.0",
+    "babel-polyfill": "^6.26.0",
     "nodemon": "^1.19.1"
   }
 }
