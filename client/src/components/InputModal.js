@@ -26,6 +26,7 @@ const InputModal = (props) => {
                       value={input.value || ''}
                       as={input.type}
                       required={input.required}>
+                        <option key="default" value="">Select an Option</option>
                         {
                           input.options.map((option) => {
                             return (<option key={option.id} value={option.id}>{option.option}</option>);

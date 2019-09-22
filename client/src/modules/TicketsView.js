@@ -1,19 +1,16 @@
-import React, { Component } from 'react';
+import React, { Component, Fragment } from 'react';
 import { Table, ButtonToolbar, Button } from 'react-bootstrap';
 import InputModal from '../components/InputModal';
+import TicketsModal from '../components/TicketModal';
 
 class TicketsView extends Component {
   constructor(props) {
     super(props);
     this.state = {
       newTicketDescription: '',
-      newTicketETA: '',
-      newTicketPriority: '',
       newTicketType: '',
       newTicketDepartment: '',
-      newTicketStatus: '',
-      newTicketHandler: '',
-      ticketToModify: -1,
+      currentTicket: {},
       tickets: [],
       departments: [],
       types: [],
@@ -21,13 +18,30 @@ class TicketsView extends Component {
       userInfo: { ...props.userInfo },
       ticketsView: props.ticketsView,
       showModal: false,
-      showTicketModal: false,
+      showTicketsModal: false,
     };
   }
 
   handleChange = (e) => {
     this.setState({ [e.target.id]: e.target.value });
   };
+
+  static getDerivedStateFromProps(props, state) {
+    if (props.ticketsView !== state.ticketsView)
+      return {
+        ticketsView: props.ticketsView,
+      };
+    return null;
+  }
+
+  componentDidUpdate(prevProps, prevState) {
+    if (prevState.ticketsView !== this.state.ticketsView) {
+      this.getTickets();
+      this.getDepartments();
+      this.getTypes();
+      this.getUsers();
+    }
+  }
 
   componentDidMount() {
     this.getTickets();
@@ -39,15 +53,11 @@ class TicketsView extends Component {
   closeModal() {
     this.setState({
       newTicketDescription: '',
-      newTicketETA: '',
-      newTicketPriority: '',
       newTicketType: '',
       newTicketDepartment: '',
-      newTicketStatus: '',
-      newTicketHandler: '',
-      ticketToModify: -1,
+      currentTicket: {},
       showModal: false,
-      showTicketModal: false,
+      showTicketsModal: false,
     });
   }
 
@@ -92,18 +102,7 @@ class TicketsView extends Component {
 
   getTickets() {
     const { ticketsView, userInfo } = this.state;
-    let url = '';
-    switch(ticketsView) {
-      case 'unassigned':
-      case 'allassigned':
-        url = `http://localhost:5000/api/tickets/${ticketsView}/`;
-        break;
-      case 'assigned':
-      default:
-        url = `http://localhost:5000/api/tickets/${ticketsView}/${userInfo.id}`;
-        break;
-    }
-    fetch(url, {
+    fetch(`http://localhost:5000/api/tickets/${ticketsView}/${userInfo.id}`, {
       method: 'GET',
       credentials: 'include',
     })
@@ -111,6 +110,9 @@ class TicketsView extends Component {
       .then((response) => {
         this.setState({
           tickets: [...response],
+          currentTicket: this.state.currentTicket._id
+            ? response.find((x) => x._id === this.state.currentTicket._id)
+            : {},
         });
       });
   }
@@ -125,6 +127,16 @@ class TicketsView extends Component {
       credentials: 'include',
       body: JSON.stringify({
         description: this.state.newTicketDescription,
+        department: this.state.newTicketDepartment,
+        ticketType: this.state.newTicketType,
+        creator: this.state.userInfo.id,
+        priority: this.state.types.find(
+          (x) => x._id === this.state.newTicketType
+        ).priority,
+        eta: this.calculateETA(
+          this.state.types.find((x) => x._id === this.state.newTicketType).eta
+        ),
+        status: 'Pending Assignment',
       }),
     })
       .then((response) => response.json())
@@ -135,8 +147,36 @@ class TicketsView extends Component {
       });
   }
 
-  modifyTicket() {
-    fetch(`http://localhost:5000/api/tickets/${this.state.ticketToModify}`, {
+  calculateETA(stringETA) {
+    let split = stringETA.toLowerCase().split(' ');
+    let eta = new Date();
+    split.forEach((element) => {
+      if (element.includes('d')) {
+        eta.setDate(
+          eta.getDate() + Number(element.substring(0, element.length - 1))
+        );
+      }
+      if (element.includes('h')) {
+        eta.setHours(
+          eta.getHours() + Number(element.substring(0, element.length - 1))
+        );
+      }
+      if (element.includes('m')) {
+        eta.setMinutes(
+          eta.getMinutes() + Number(element.substring(0, element.length - 1))
+        );
+      }
+      if (element.includes('s')) {
+        eta.setSeconds(
+          eta.getSeconds() + Number(element.substring(0, element.length - 1))
+        );
+      }
+    });
+    return eta;
+  }
+
+  modifyTicket(ticket) {
+    fetch(`http://localhost:5000/api/tickets/${ticket._id}`, {
       method: 'PUT',
       headers: [
         ['Content-Type', 'application/json'],
@@ -144,7 +184,7 @@ class TicketsView extends Component {
       ],
       credentials: 'include',
       body: JSON.stringify({
-        description: this.state.newTicketDescription,
+        ...ticket,
       }),
     })
       .then((response) => response.json())
@@ -154,36 +194,45 @@ class TicketsView extends Component {
   }
 
   render() {
-    const { tickets, showModal, departments, types, users } = this.state;
-    const ticketsView = tickets.map((ticket) => {
+    const {
+      tickets,
+      showModal,
+      showTicketsModal,
+      departments,
+      types,
+      users,
+      currentTicket,
+      ticketsView,
+    } = this.state;
+    const ticketsViewTable = tickets.map((ticket) => {
       let currDepartment = departments.find((x) => x._id === ticket.department);
       if (typeof currDepartment === 'undefined') currDepartment = 'undef';
       let currType = types.find((x) => x._id === ticket.ticketType);
       if (typeof currType === 'undefined') currType = 'undef';
-      let currHandler = users.find((x) => x._id === ticket.handler);
+      let currHandler = users.find((x) => x.id === ticket.handler);
       if (typeof currHandler === 'undefined') currHandler = 'None Assigned';
-      let currCreator = users.find((x) => x._id === ticket.creator);
+      let currCreator = users.find((x) => x.id === ticket.creator);
       if (typeof currCreator === 'undefined') currCreator = 'undef';
       return (
         <tr key={ticket._id}>
-          <td>{currCreator}</td>
-          <td>{new Date(ticket.creation)}</td>
+          <td>{currCreator.username}</td>
+          <td>{new Date(ticket.creation).toUTCString()}</td>
           <td>{ticket.priority}</td>
-          <td>{currDepartment}</td>
-          <td>{currType}</td>
-          <th>{ticket.status}</th>
-          <td>{new Date(ticket.completion)}</td>
+          <td>{currDepartment.name}</td>
+          <td>{currType.name}</td>
+          <td>{ticket.status}</td>
+          <td>{new Date(ticket.eta).toUTCString()}</td>
+          <td>{new Date(ticket.completion).toUTCString()}</td>
           <td>
             <Button
               variant="primary"
               onClick={() => {
                 this.setState({
-                  showModal: true,
-                  ticketToModify: ticket._id,
-                  newTicketDescription: ticket.description,
+                  showTicketsModal: true,
+                  currentTicket: ticket,
                 });
               }}>
-              <span className="far fa-edit"></span>
+              <span className="fas fa-search-plus"></span>
             </Button>
           </td>
         </tr>
@@ -192,14 +241,33 @@ class TicketsView extends Component {
 
     return (
       <div className="container">
-        <h2>Tickets</h2>
-        <ButtonToolbar bsPrefix="btn-toolbar">
-          <Button
-            variant="secondary"
-            onClick={() => this.setState({ showModal: true })}>
-            Create Ticket
-          </Button>
-        </ButtonToolbar>
+        {ticketsView === 'own' && (
+          <Fragment>
+            <h2>My Tickets</h2>
+            <ButtonToolbar bsPrefix="btn-toolbar">
+              <Button
+                variant="secondary"
+                onClick={() => this.setState({ showModal: true })}>
+                Create Ticket
+              </Button>
+            </ButtonToolbar>
+          </Fragment>
+        )}
+        {ticketsView === 'assigned' && (
+          <Fragment>
+            <h2>My Assigned Tickets</h2>
+          </Fragment>
+        )}
+        {ticketsView === 'unassigned' && (
+          <Fragment>
+            <h2>Unassigned Tickets</h2>
+          </Fragment>
+        )}
+        {ticketsView === 'allassigned' && (
+          <Fragment>
+            <h2>All Assigned Tickets</h2>
+          </Fragment>
+        )}
         <Table responsive hover striped>
           <thead>
             <tr>
@@ -209,27 +277,48 @@ class TicketsView extends Component {
               <th>Department</th>
               <th>Type</th>
               <th>Status</th>
+              <th>ETA</th>
               <th>Resolved On</th>
               <th>Open</th>
             </tr>
           </thead>
-          <tbody>{ticketsView}</tbody>
+          <tbody>{ticketsViewTable}</tbody>
         </Table>
         {showModal && (
           <InputModal
             handleChange={(e) => this.handleChange(e)}
             onCreate={() => {
-              if (this.state.ticketToModify !== -1) {
-                this.modifyTicket();
-              } else {
-                this.createTicket();
-              }
+              this.createTicket();
               this.closeModal();
             }}
             show={showModal}
             closeModal={() => this.closeModal()}
             title="Create Ticket"
             inputs={[
+              {
+                label: 'Department:',
+                value: this.state.newTicketDepartment,
+                valueId: 'newTicketDepartment',
+                type: 'select',
+                required: true,
+                options: this.state.departments.map((x) => {
+                  return { id: x._id, option: x.name };
+                }),
+              },
+              {
+                label: 'Ticket Type:',
+                value: this.state.newTicketType,
+                valueId: 'newTicketType',
+                type: 'select',
+                required: true,
+                options: this.state.types
+                  .filter(
+                    (x) => x.department === this.state.newTicketDepartment
+                  )
+                  .map((x) => {
+                    return { id: x._id, option: x.name };
+                  }),
+              },
               {
                 label: 'Description:',
                 value: this.state.newTicketDescription,
@@ -238,6 +327,18 @@ class TicketsView extends Component {
                 required: true,
               },
             ]}
+          />
+        )}
+        {showTicketsModal && (
+          <TicketsModal
+            show={showTicketsModal}
+            closeModal={() => this.closeModal()}
+            currentTicket={currentTicket}
+            userInfo={this.props.userInfo}
+            users={users}
+            types={types}
+            departments={departments}
+            modifyTicket={(ticket) => this.modifyTicket(ticket)}
           />
         )}
       </div>

@@ -18,7 +18,7 @@ router.post('/login', async (req, res) => {
         let user = await req.context.models.User.getUserByEmail(req.body.email);
         req.session.email = user.email;
         req.session.isLoggedIn = true;
-        return res.send({ boards: user.boards, active: user.active, email: user.email, username: user.username, id: user.id, role: user.role });
+        return res.send({active: user.active, email: user.email, username: user.username, id: user.id, role: user.role });
     }
 
     return res.send({"msg": "Incorrect login info."});
@@ -27,7 +27,7 @@ router.post('/login', async (req, res) => {
 router.get('/login', async (req, res) => {
     if(req.session.isLoggedIn){
         let user = await req.context.models.User.getUserByEmail(req.session.email);
-        return res.send({ boards: user.boards, active: user.active, email: user.email, username: user.username, id: user.id, role: user.role });
+        return res.send({active: user.active, email: user.email, username: user.username, id: user.id, role: user.role });
     }
     return res.send({"msg": "Not logged in."});
 });
@@ -41,6 +41,15 @@ router.get('/:id', async (req, res) => {
     const user = await req.context.models.User.findById(req.params.id);
 
     return res.send(user);
+});
+
+router.get('/', async (req, res) => {
+    const users = await req.context.models.User.find({});
+    const mappedUsers = users.map(user => {
+        return {active: user.active, email: user.email, username: user.username, id: user.id, role: user.role };
+    })
+
+    return res.send(mappedUsers);
 });
 
 router.put('/:id', async (req, res) => {
