@@ -1,5 +1,4 @@
 import { Schema, model } from 'mongoose';
-import StringEntityReplacementService from '../services/StringEntityReplacementService';
 
 const ticketSchema = new Schema({
     description: {
@@ -21,10 +20,6 @@ const ticketSchema = new Schema({
         type: Schema.Types.ObjectId,
         ref: 'Type'
     },
-    activity: [{
-        type: Schema.Types.ObjectId,
-        ref: 'Activity'
-    }],
     department: {
         type: Schema.Types.ObjectId,
         ref: 'Department'
@@ -41,13 +36,5 @@ const ticketSchema = new Schema({
         ref: 'User'
     }
 });
-
-ticketSchema.statics.resolveActivity = async function(activity, models) {
-    return Promise.all(
-        activity.map(async (x) => StringEntityReplacementService.replace(x, models))
-    ).then((act) => {
-        return act;
-    });
-}
 
 export default model('Ticket', ticketSchema);

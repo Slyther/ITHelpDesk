@@ -141,6 +141,18 @@ class TicketsView extends Component {
     })
       .then((response) => response.json())
       .then((response) => {
+        fetch(`http://localhost:5000/api/activities/`, {
+          method: 'POST',
+          headers: [
+            ['Content-Type', 'application/json'],
+            ['Accept', 'application/json'],
+          ],
+          credentials: 'include',
+          body: JSON.stringify({
+            ticket: response._id,
+            detail: `{{User:${this.props.userInfo.id}}} created this ticket.`,
+          }),
+        })
         this.setState({
           tickets: [response, ...this.state.tickets],
         });

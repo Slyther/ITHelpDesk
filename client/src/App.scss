@@ -53,3 +53,23 @@
   margin: 15px auto;
   display: block;
 }
+
+.activity-entry{
+  padding: 5px 20px;
+  background: rgb(230,230,230);
+  .sub{
+    font-size: 12px;
+    font-style: italic;
+    text-indent: 10px;
+    margin: 0;
+    font-weight: 700;
+  }
+}
+
+.submitComment {
+  margin: 0px 20px 20px;
+  position: relative;
+  left: 75%;
+  // display: block;
+  // float: right;
+}

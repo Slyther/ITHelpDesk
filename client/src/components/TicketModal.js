@@ -1,18 +1,73 @@
 import React, { Component, Fragment } from 'react';
-import { Modal, DropdownButton, Dropdown, Button } from 'react-bootstrap';
+import {
+  Modal,
+  DropdownButton,
+  Dropdown,
+  Button,
+  Form,
+  Col,
+  Row,
+} from 'react-bootstrap';
 
 class TicketsModal extends Component {
   constructor(props) {
     super(props);
     this.state = {
       currentTicket: props.currentTicket,
+      activity: [],
+      currentComment: '',
     };
   }
 
+  componentDidMount() {
+    this.getActivity();
+  }
+
+  getActivity() {
+    fetch(
+      `http://localhost:5000/api/activities/${this.state.currentTicket._id}`,
+      {
+        method: 'GET',
+        credentials: 'include',
+      }
+    )
+      .then((response) => response.json())
+      .then((response) => {
+        this.setState({
+          activity: [...response],
+        });
+      });
+  }
+
+  postActivity(activity) {
+    fetch(`http://localhost:5000/api/activities/`, {
+      method: 'POST',
+      headers: [
+        ['Content-Type', 'application/json'],
+        ['Accept', 'application/json'],
+      ],
+      credentials: 'include',
+      body: JSON.stringify({
+        ticket: this.state.currentTicket._id,
+        detail: activity,
+      }),
+    })
+      .then((response) => response.json())
+      .then((response) => {
+        this.setState({
+          activity: [...response, ...this.state.activity],
+        });
+      });
+  }
+
   handleChange = (variable, value) => {
-    let { currentTicket } = this.state;
-    currentTicket[variable] = value;
-    this.setState({ currentTicket });
+    if (!value) {
+      this.setState({ [variable.target.id]: variable.target.value });
+    } else {
+      let { currentTicket } = this.state;
+      currentTicket[variable] = value;
+      this.setState({ currentTicket });
+    }
   };
 
   static getDerivedStateFromProps(props, state) {
@@ -28,7 +83,7 @@ class TicketsModal extends Component {
   }
 
   render() {
-    let { currentTicket } = this.state;
+    let { currentTicket, activity, currentComment } = this.state;
     let departmentsJSX = this.props.departments.map((department) => {
       return (
         <Dropdown.Item
@@ -58,7 +113,7 @@ class TicketsModal extends Component {
       .map((user) => {
         return (
           <Dropdown.Item
-            key={user._id}
+            key={user.id}
             onClick={() => this.handleChange('handler', user.id)}>
             {user.username}
           </Dropdown.Item>
@@ -103,7 +158,6 @@ class TicketsModal extends Component {
     } else {
       currentUser = 'None Assigned';
     }
-    console.log(this.state);
     return (
       <Modal show={this.props.show} onHide={this.props.closeModal} size="lg">
         <Modal.Header closeButton>
@@ -122,12 +176,35 @@ class TicketsModal extends Component {
               onKeyUp={() => this.resizeTextArea(this.commentInput.current)}
               placeholder="Write a comment...">
             </textarea> */}
+            <Form.Group as={Row} controlId={'currentComment'}>
+              <Col sm={12}>
+                <Form.Control
+                  onChange={this.handleChange}
+                  value={currentComment}
+                  as="textarea"
+                  placeholder="Write a comment..."></Form.Control>
+              </Col>
+            </Form.Group>
+            <Button
+              variant="primary"
+              className="submitComment col-sm-2 offset-sm-8"
+              onClick={() => {
+                this.postActivity(
+                  `{{User:${this.props.userInfo.id}}}: ${currentComment}`
+                );
+                this.setState({ currentComment: '' });
+              }}>
+              Submit
+            </Button>
             <div className="content">
-              {currentTicket.activity.map((act) => {
+              {activity.map((act) => {
                 return (
-                  <p key={act} className="activity-entry">
-                    {act}
-                  </p>
+                  <div key={act._id} className="activity-entry">
+                    {act.detail}
+                    <p className="sub">
+                      {new Date(act.timestamp).toUTCString()}
+                    </p>
+                  </div>
                 );
               })}
             </div>
@@ -201,20 +278,18 @@ class TicketsModal extends Component {
               <Fragment>
                 <h6 className="text-center">Actions</h6>
                 <div className="mrg-top">
+                  <b>Assign User</b>
+                </div>
+                <DropdownButton variant="secondary" title={currentUser}>
+                  {usersJSX}
+                </DropdownButton>
+                <div className="mrg-top">
                   <b>Change Priority</b>
                 </div>
                 <DropdownButton
                   variant="secondary"
                   title={currentTicket.priority}>
                   {priorityJSX}
-                </DropdownButton>
-                <div className="mrg-top">
-                  <b>Change Status</b>
-                </div>
-                <DropdownButton
-                  variant="secondary"
-                  title={currentTicket.status}>
-                  {statusJSX}
                 </DropdownButton>
                 <div className="mrg-top">
                   <b>Change Department</b>
@@ -241,10 +316,12 @@ class TicketsModal extends Component {
                   {typesJSX}
                 </DropdownButton>
                 <div className="mrg-top">
-                  <b>Assign User</b>
+                  <b>Change Status</b>
                 </div>
-                <DropdownButton variant="secondary" title={currentUser}>
-                  {usersJSX}
+                <DropdownButton
+                  variant="secondary"
+                  title={currentTicket.status}>
+                  {statusJSX}
                 </DropdownButton>
                 <Button
                   className="save"
